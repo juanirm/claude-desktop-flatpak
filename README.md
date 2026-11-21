@@ -37,3 +37,8 @@ resulting `.deb` or `.flatpak` bundles.
 Flatpak sandbox limits apply (no host process spawning for local MCP servers or
 Claude Code sessions, no VM-backed sandbox, auto-update disabled; re-run
 `./upgrade.sh` to update).
+
+## License
+
+The scripts and templates in this repository are MIT licensed (see `LICENSE`).
+This does not cover Claude Desktop itself, which belongs to Anthropic PBC.
