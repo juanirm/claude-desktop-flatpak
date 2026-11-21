@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.anthropic.Claude</id>
+
+  <name>Claude</name>
+  <summary>Desktop application for Claude.ai</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <!-- Claude Desktop is proprietary software from Anthropic PBC. -->
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <developer id="com.anthropic">
+    <name>Anthropic PBC</name>
+  </developer>
+
+  <description>
+    <p>
+      Claude Desktop is the desktop client for Claude.ai, Anthropic's AI
+      assistant. This is an unofficial flatpak repackaging of the official
+      Linux .deb.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">com.anthropic.Claude.desktop</launchable>
+
+  <url type="homepage">https://claude.ai</url>
+
+  <categories>
+    <category>Utility</category>
+    <category>Development</category>
+  </categories>
+
+  <content_rating type="oars-1.1"/>
+
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>

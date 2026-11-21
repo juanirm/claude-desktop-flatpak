@@ -1,0 +1,7 @@
+claude-desktop_*/
+*.deb
+*.flatpak
+.flatpak-builder/
+build-dir/
+repo/
+upgrade.log

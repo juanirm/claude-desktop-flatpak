@@ -1,0 +1,91 @@
+app-id: com.anthropic.Claude
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+
+# Electron base app. It bundles the extra shared libraries Electron needs
+# (nss, at-spi, etc.) that are not in the plain freedesktop runtime, and
+# provides `zypak-wrapper`, which makes Chromium's sandbox work inside the
+# flatpak (bubblewrap) sandbox without the setuid chrome-sandbox helper.
+base: org.electronjs.Electron2.BaseApp
+base-version: '26.08'
+
+command: claude-desktop
+
+# The .deb ships amd64 binaries only. Build with:
+#   flatpak-builder --arch=x86_64 ...
+# (see build.sh). It cannot produce an aarch64 build from this .deb.
+
+finish-args:
+  # Windowing — support both X11 and Wayland; the launcher picks Wayland
+  # when available via --ozone-platform-hint=auto and falls back to X11.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc            # required for X11 shared-memory / Chromium
+  - --device=dri           # GPU acceleration
+  # Audio (voice / notifications sounds)
+  - --socket=pulseaudio
+  # Networking
+  - --share=network
+  # System tray / app indicator (libayatana-appindicator in the .deb)
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+  # Desktop notifications (also covered by the portal, kept for safety)
+  - --talk-name=org.freedesktop.Notifications
+  # Secret storage — Claude Desktop stores its session token via libsecret
+  # (gnome-keyring / kwallet). Without this you get logged out every launch.
+  - --talk-name=org.freedesktop.secrets
+  # File access for attachments / uploads. Kept deliberately narrow; widen
+  # to --filesystem=home if you routinely attach files from anywhere.
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-pictures
+
+cleanup:
+  - '*.a'
+  - '*.la'
+  - /include
+
+modules:
+  - name: claude-desktop
+    buildsystem: simple
+    build-commands:
+      # A .deb is an `ar` archive of {debian-binary, control.tar.*, data.tar.*}.
+      # binutils (`ar`) ships in org.freedesktop.Sdk, and tar auto-detects xz.
+      - ar x claude-desktop.deb
+      - mkdir -p data && tar -xf data.tar.xz -C data
+
+      # Relocate the app payload from /usr (Debian layout) to /app (flatpak).
+      - cp -a data/usr/lib/claude-desktop /app/lib/claude-desktop
+      # zypak provides the sandbox; the setuid helper is useless (and
+      # forbidden) inside flatpak.
+      - rm -f /app/lib/claude-desktop/chrome-sandbox
+
+      # Launcher wrapper (runs the Electron binary through zypak).
+      - install -Dm755 claude-desktop.sh /app/bin/claude-desktop
+
+      # Icons — rename to the app-id so the host desktop resolves them.
+      - |
+        for size in 16 32 48 128 256; do
+          install -Dm644 \
+            "data/usr/share/icons/hicolor/${size}x${size}/apps/claude-desktop.png" \
+            "/app/share/icons/hicolor/${size}x${size}/apps/com.anthropic.Claude.png"
+        done
+
+      # Desktop entry — point Icon= at the renamed (app-id) icon.
+      - install -Dm644 data/usr/share/applications/com.anthropic.Claude.desktop
+          /app/share/applications/com.anthropic.Claude.desktop
+      - sed -i 's/^Icon=.*/Icon=com.anthropic.Claude/' /app/share/applications/com.anthropic.Claude.desktop
+
+      # AppStream metadata.
+      - install -Dm644 com.anthropic.Claude.metainfo.xml
+          /app/share/metainfo/com.anthropic.Claude.metainfo.xml
+    sources:
+      - type: file
+        # Rename in your working dir or adjust this path to your .deb.
+        path: '@DEB@'
+        dest-filename: claude-desktop.deb
+      - type: file
+        path: claude-desktop.sh
+      - type: file
+        path: com.anthropic.Claude.metainfo.xml
